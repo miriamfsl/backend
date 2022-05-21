@@ -48,13 +48,15 @@ class OrdenController extends Controller
      */
     public function actionIndex()
     {
-        $searchModel = new OrdenSearch();
-        $dataProvider = $searchModel->search($this->request->queryParams);
+        if(isAdmin()){
+            $searchModel = new OrdenSearch();
+            $dataProvider = $searchModel->search($this->request->queryParams);
 
-        return $this->render('index', [
-            'dataProvider' => $dataProvider,
-            'searchModel'=>$searchModel
-        ]);
+            return $this->render('index', [
+                'dataProvider' => $dataProvider,
+                'searchModel'=>$searchModel
+            ]);
+        }
     }
 
     public function getFincas(){
@@ -77,9 +79,11 @@ class OrdenController extends Controller
      */
     public function actionView($id)
     {
-        return $this->render('view', [
-            'model' => $this->findModel($id),
-        ]);
+        if(isAdmin()){
+            return $this->render('view', [
+                'model' => $this->findModel($id),
+            ]);
+        }
     }
 
     public function updNlote($num){
@@ -96,80 +100,82 @@ class OrdenController extends Controller
      */
     public function actionCreate($variedad ="")
     {
-        //Almacena la sentencia para filtrar los pedidoinfos, en caso de haber
-        //variedad elegida, filtra también por variedad
-        $where = "id NOT in (SELECT pedidoinfo_id FROM orden_pedidoinfo)";
-        if($variedad){
-            $where.= " AND variedad_id = $variedad";
-        }
+        if(isAdmin()){
+            //Almacena la sentencia para filtrar los pedidoinfos, en caso de haber
+            //variedad elegida, filtra también por variedad
+            $where = "id NOT in (SELECT pedidoinfo_id FROM orden_pedidoinfo)";
+            if($variedad){
+                $where.= " AND variedad_id = $variedad";
+            }
 
-        //Información para el modelo create (gestionar el cambio de variedad, la fecha, etc...)
-        $searchModel = new PedidoinfoSearch();
-        $dataProvider = $searchModel->search($this->request->queryParams, $where);
-        $model = new Orden();
-        $model->fecha = date('Y-m-d');
-        $model->variedad_id = $variedad;
+            //Información para el modelo create (gestionar el cambio de variedad, la fecha, etc...)
+            $searchModel = new PedidoinfoSearch();
+            $dataProvider = $searchModel->search($this->request->queryParams, $where);
+            $model = new Orden();
+            $model->fecha = date('Y-m-d');
+            $model->variedad_id = $variedad;
 
-        if ($this->request->isPost) {
-            $post = $this->request->post();
-            //Si se ha seleccionado como minimo un pedidoinfo
-            if(isset($post['ids'])){
-                $ids = $post['ids'];
-                try{
-                //Inicio de transacción
-                $trans = Yii::$app->db->beginTransaction();
-                //Genera un string para igualar todos los numeros de lote a la misma longitud
-                $strLote = "";
-                for($i=strlen(Nlote::numLote()); $i<6; $i++){
-                    $strLote.="0";
-                }
-                $strLote.=Nlote::numLote();
-                //Obtiene la cantidad total de 
-                $cant_tot = 0;
-                foreach($ids as $id){
-                    $cant_tot = $cant_tot + intval(Pedidoinfo::cantidad($id));
-                }
-                //Añadiendo datos de la orden
-                $orden = new Orden();
-                $orden->lote = date('Y')."-".$strLote;
-                $orden->variedad_id = $variedad;
-                $orden->finca_id = key(Finca::fromFinca($post['Orden']['parcela_id']));
-                $orden->parcela_id = $post['Orden']['parcela_id'];
-                $orden->fecha = $post['Orden']['fecha'];
-                $orden->cantidad = $cant_tot;
-                $orden->estado = "P";
-                //Se crea por defecto en estado P, se puede cambiar luego
-                if($orden->save()){
-                    foreach($ids as $id){
-                        $linea = new OrdenPedidoinfo();
-                        $linea->orden_id = $orden->id;
-                        $linea->pedidoinfo_id = $id;
-                        $linea->variedad_id = $post['Orden']['variedad_id'];
-                        $linea->cantidad = Pedidoinfo::cantidad($id);
-                        $linea->save();
+            if ($this->request->isPost) {
+                $post = $this->request->post();
+                //Si se ha seleccionado como minimo un pedidoinfo
+                if(isset($post['ids'])){
+                    $ids = $post['ids'];
+                    try{
+                    //Inicio de transacción
+                    $trans = Yii::$app->db->beginTransaction();
+                    //Genera un string para igualar todos los numeros de lote a la misma longitud
+                    $strLote = "";
+                    for($i=strlen(Nlote::numLote()); $i<6; $i++){
+                        $strLote.="0";
                     }
-                    $trans->commit();
-                    $this->updNlote(intval(Nlote::numLote()));
+                    $strLote.=Nlote::numLote();
+                    //Obtiene la cantidad total de 
+                    $cant_tot = 0;
+                    foreach($ids as $id){
+                        $cant_tot = $cant_tot + intval(Pedidoinfo::cantidad($id));
+                    }
+                    //Añadiendo datos de la orden
+                    $orden = new Orden();
+                    $orden->lote = date('Y')."-".$strLote;
+                    $orden->variedad_id = $variedad;
+                    $orden->finca_id = key(Finca::fromFinca($post['Orden']['parcela_id']));
+                    $orden->parcela_id = $post['Orden']['parcela_id'];
+                    $orden->fecha = $post['Orden']['fecha'];
+                    $orden->cantidad = $cant_tot;
+                    $orden->estado = "P";
+                    //Se crea por defecto en estado P, se puede cambiar luego
+                    if($orden->save()){
+                        foreach($ids as $id){
+                            $linea = new OrdenPedidoinfo();
+                            $linea->orden_id = $orden->id;
+                            $linea->pedidoinfo_id = $id;
+                            $linea->variedad_id = $post['Orden']['variedad_id'];
+                            $linea->cantidad = Pedidoinfo::cantidad($id);
+                            $linea->save();
+                        }
+                        $trans->commit();
+                        $this->updNlote(intval(Nlote::numLote()));
+                    }
+                }catch(Exception $e){
+                    var_dump($e);
                 }
-            }catch(Exception $e){
-                var_dump($e);
+                    return $this->redirect(['view', 'id' => $orden->id]);
+                }else{
+                    //Si no se ha elegido se devuelve a la pagina de crear, con un error
+                    //MENSAJE DE ERROR POR HACER (o no decir nada sobre ello)
+                    Yii::$app->controller->redirect('index.php?r=orden%2Fcreate&error=e');
+                }
+                
+            } else {
+                $model->loadDefaultValues();
             }
-                return $this->redirect(['view', 'id' => $orden->id]);
-            }else{
-                //Si no se ha elegido se devuelve a la pagina de crear, con un error
-                //MENSAJE DE ERROR POR HACER (o no decir nada sobre ello)
-                Yii::$app->controller->redirect('index.php?r=orden%2Fcreate&error=e');
-            }
-            
-        } else {
-            $model->loadDefaultValues();
-        }
 
-        return $this->render('create', [
-            'dataProvider' => $dataProvider,
-            'searchModel'=>$searchModel,
-            'model' => $model,
-        ]);
+            return $this->render('create', [
+                'dataProvider' => $dataProvider,
+                'searchModel'=>$searchModel,
+                'model' => $model,
+            ]);
+        }
     }
 
     /**
@@ -181,15 +187,17 @@ class OrdenController extends Controller
      */
     public function actionUpdate($id)
     {
-        $model = $this->findModel($id);
+        if(isAdmin()){
+            $model = $this->findModel($id);
 
-        if ($this->request->isPost && $model->load($this->request->post()) && $model->save()) {
-            return $this->redirect(['view', 'id' => $model->id]);
+            if ($this->request->isPost && $model->load($this->request->post()) && $model->save()) {
+                return $this->redirect(['view', 'id' => $model->id]);
+            }
+
+            return $this->render('update', [
+                'model' => $model,
+            ]);
         }
-
-        return $this->render('update', [
-            'model' => $model,
-        ]);
     }
 
     /**
@@ -201,9 +209,11 @@ class OrdenController extends Controller
      */
     public function actionDelete($id)
     {
-        $this->findModel($id)->delete();
+        if(isAdmin()){
+            $this->findModel($id)->delete();
 
-        return $this->redirect(['index']);
+            return $this->redirect(['index']);
+        }
     }
 
     /**

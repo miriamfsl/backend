@@ -19,7 +19,7 @@ class PedidoDevueltoSearch extends PedidoDevuelto
     public function rules()
     {
         return [
-            [['cliente_id','fecha_devuelto'], 'safe']
+            [['cliente_id'], 'safe']
         ];
     }
 
@@ -55,8 +55,10 @@ class PedidoDevueltoSearch extends PedidoDevuelto
 
         // add conditions that should always apply here
 
+        
         $dataProvider = new ActiveDataProvider([
             'query' => $query,
+            'pagination' => [ 'pageSize' => 4 ],
         ]);
 
         $this->load($params);
@@ -73,8 +75,7 @@ class PedidoDevueltoSearch extends PedidoDevuelto
             die();
         }
         
-        $query->andFilterWhere(['=', 'cliente_id', $this->cliente_id])
-              ->andFilterWhere(['not', ['fecha_devuelto' => null]]);;
+        $query->andFilterWhere(['=', 'cliente_id', $this->cliente_id]);
 
         return $dataProvider;
     }

@@ -14,6 +14,7 @@ return [
             ['label' => 'Variedad', 'url' => ['/variedad']],
         ],
     ],
+    ['label' => 'Gráficas de Pedidos Devueltos', "url" => ["/pedido-devuelto/chart"], "icon" => "bi bi-bar-chart-line"],
     [
         "label" => "Seguimiento",
         "icon" => "compass",

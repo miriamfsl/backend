@@ -39,13 +39,15 @@ class EtiquetaController extends Controller
      */
     public function actionIndex()
     {
-        $searchModel = new EtiquetaSearch();
-        $dataProvider = $searchModel->search($this->request->queryParams);
+        if(isAdmin()){
+            $searchModel = new EtiquetaSearch();
+            $dataProvider = $searchModel->search($this->request->queryParams);
 
-        return $this->render('index', [
-            'dataProvider' => $dataProvider,
-            'searchModel'=>$searchModel
-        ]);
+            return $this->render('index', [
+                'dataProvider' => $dataProvider,
+                'searchModel'=>$searchModel
+            ]);
+        }
     }
 
     /**
@@ -56,15 +58,19 @@ class EtiquetaController extends Controller
      */
     public function actionView($id)
     {
-        return $this->render('view', [
-            'model' => $this->findModel($id),
-        ]);
+        if(isAdmin()){
+            return $this->render('view', [
+                'model' => $this->findModel($id),
+            ]);
+        }
     }
 
     public function actionPrint()
     {
-        $model = new Etiqueta();
-        return $this->render('print');
+        if(isAdmin()){
+            $model = new Etiqueta();
+            return $this->render('print');
+        }
     }
 
     /**
@@ -74,19 +80,21 @@ class EtiquetaController extends Controller
      */
     public function actionCreate()
     {
-        $model = new Etiqueta();
+        if(isAdmin()){
+            $model = new Etiqueta();
 
-        if ($this->request->isPost) {
-            if ($model->load($this->request->post()) && $model->save()) {
-                return $this->redirect(['view', 'id' => $model->id]);
+            if ($this->request->isPost) {
+                if ($model->load($this->request->post()) && $model->save()) {
+                    return $this->redirect(['view', 'id' => $model->id]);
+                }
+            } else {
+                $model->loadDefaultValues();
             }
-        } else {
-            $model->loadDefaultValues();
-        }
 
-        return $this->render('create', [
-            'model' => $model,
-        ]);
+            return $this->render('create', [
+                'model' => $model,
+            ]);
+        }
     }
 
     /**
@@ -98,15 +106,17 @@ class EtiquetaController extends Controller
      */
     public function actionUpdate($id)
     {
-        $model = $this->findModel($id);
+        if(isAdmin()){
+            $model = $this->findModel($id);
 
-        if ($this->request->isPost && $model->load($this->request->post()) && $model->save()) {
-            return $this->redirect(['view', 'id' => $model->id]);
+            if ($this->request->isPost && $model->load($this->request->post()) && $model->save()) {
+                return $this->redirect(['view', 'id' => $model->id]);
+            }
+
+            return $this->render('update', [
+                'model' => $model,
+            ]);
         }
-
-        return $this->render('update', [
-            'model' => $model,
-        ]);
     }
 
     /**
@@ -118,9 +128,11 @@ class EtiquetaController extends Controller
      */
     public function actionDelete($id)
     {
-        $this->findModel($id)->delete();
+        if(isAdmin()){
+            $this->findModel($id)->delete();
 
-        return $this->redirect(['index']);
+            return $this->redirect(['index']);
+        }
     }
 
     /**

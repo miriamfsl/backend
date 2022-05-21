@@ -18,17 +18,8 @@ $this->params['breadcrumbs'][] = $this->title;
 <div class="pedido-devuelto-index">
 
     <h1><?= Html::encode($this->title) ?></h1>
+    <a href=<?=Url::toRoute(['pedido-devuelto/chart'])?>><button type="button" class="btn btn-info">Gráficas</button></a>
     
-    <!-- <?php
-    //echo Yii::$app->request->url;
-    ?>
-    
-    <p>
-        <?php // Html::a('Filtrar por pendientes', [Yii::$app->request->url], ['class' => 'btn btn-success']) ?>
-    </p> -->
-
-    <?php // echo $this->render('_search', ['model' => $searchModel]); ?>
-
     <?= GridView::widget([
         'dataProvider' => $dataProvider,
         'filterModel' => $searchModel,
@@ -96,7 +87,13 @@ $this->params['breadcrumbs'][] = $this->title;
                         return Html::a('Devolver',['devolver','id'=>$data->id], ['class' => 'btn btn-success'])."  
                         ".Html::a('No Devolver',['nodevolver','id'=>$data->id], ['class' => 'btn btn-danger']);
                     }else{
-                        return "";
+                        if(Pedido::getEstado($data->pedido_id)=="D"){
+                            return Html::a('Cancelar Devolución',['nodevolver','id'=>$data->id], ['class' => 'btn btn-danger']);
+                        }else{
+                            if(Pedido::getEstado($data->pedido_id)=="ND"){
+                                return Html::a('Aceptar Devolución',['devolver','id'=>$data->id], ['class' => 'btn btn-success']);
+                            }
+                        }
                     }
                 }
             ],

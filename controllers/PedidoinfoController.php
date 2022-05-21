@@ -45,29 +45,30 @@ class PedidoinfoController extends Controller
      */
     public function actionIndex($variedad = "")
     {
-
-        $where = "id NOT in (SELECT pedidoinfo_id FROM orden_pedidoinfo)";
-        if($variedad){
-            $where.= " AND variedad_id = $variedad";
-        }
-        $searchModel = new PedidoinfoSearch();
-        $dataProvider = $searchModel->search($this->request->queryParams, $where);
-        $model = new Orden();
-        $model->variedad_id = $variedad;
-
-        if ($this->request->isPost) {
-            if ($model->load($this->request->post()) && $model->save()) {
-                return $this->redirect(['view', 'id' => $model->id]);
+        if(isAdmin()){
+            $where = "id NOT in (SELECT pedidoinfo_id FROM orden_pedidoinfo)";
+            if($variedad){
+                $where.= " AND variedad_id = $variedad";
             }
-        } else {
-            $model->loadDefaultValues();
-        }
+            $searchModel = new PedidoinfoSearch();
+            $dataProvider = $searchModel->search($this->request->queryParams, $where);
+            $model = new Orden();
+            $model->variedad_id = $variedad;
 
-        return $this->render('index', [
-            'dataProvider' => $dataProvider,
-            'searchModel'=>$searchModel,
-            'model' => $model,
-        ]);
+            if ($this->request->isPost) {
+                if ($model->load($this->request->post()) && $model->save()) {
+                    return $this->redirect(['view', 'id' => $model->id]);
+                }
+            } else {
+                $model->loadDefaultValues();
+            }
+
+            return $this->render('index', [
+                'dataProvider' => $dataProvider,
+                'searchModel'=>$searchModel,
+                'model' => $model,
+            ]);
+        }
     }
 
     /**
@@ -78,9 +79,11 @@ class PedidoinfoController extends Controller
      */
     public function actionView($id)
     {
-        return $this->render('view', [
-            'model' => $this->findModel($id),
-        ]);
+        if(isAdmin()){
+            return $this->render('view', [
+                'model' => $this->findModel($id),
+            ]);
+        }
     }
 
     /**
@@ -90,19 +93,21 @@ class PedidoinfoController extends Controller
      */
     public function actionCreate()
     {
-        $model = new Pedidoinfo();
+        if(isAdmin()){
+            $model = new Pedidoinfo();
 
-        if ($this->request->isPost) {
-            if ($model->load($this->request->post()) && $model->save()) {
-                return $this->redirect(['view', 'id' => $model->id]);
+            if ($this->request->isPost) {
+                if ($model->load($this->request->post()) && $model->save()) {
+                    return $this->redirect(['view', 'id' => $model->id]);
+                }
+            } else {
+                $model->loadDefaultValues();
             }
-        } else {
-            $model->loadDefaultValues();
-        }
 
-        return $this->render('create', [
-            'model' => $model,
-        ]);
+            return $this->render('create', [
+                'model' => $model,
+            ]);
+        }
     }
 
     /**
@@ -114,15 +119,17 @@ class PedidoinfoController extends Controller
      */
     public function actionUpdate($id)
     {
-        $model = $this->findModel($id);
+        if(isAdmin()){
+            $model = $this->findModel($id);
 
-        if ($this->request->isPost && $model->load($this->request->post()) && $model->save()) {
-            return $this->redirect(['view', 'id' => $model->id]);
+            if ($this->request->isPost && $model->load($this->request->post()) && $model->save()) {
+                return $this->redirect(['view', 'id' => $model->id]);
+            }
+
+            return $this->render('update', [
+                'model' => $model,
+            ]);
         }
-
-        return $this->render('update', [
-            'model' => $model,
-        ]);
     }
 
     /**
@@ -134,9 +141,11 @@ class PedidoinfoController extends Controller
      */
     public function actionDelete($id)
     {
-        $this->findModel($id)->delete();
+        if(isAdmin()){
+            $this->findModel($id)->delete();
 
-        return $this->redirect(['index']);
+            return $this->redirect(['index']);
+        }
     }
 
     /**

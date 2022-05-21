@@ -2,11 +2,13 @@
 
 namespace app\controllers;
 
-use app\models\PedidoDevuelto;
-use app\models\PedidoDevueltoSearch;
+use Yii;
 use yii\web\Controller;
-use yii\web\NotFoundHttpException;
 use yii\filters\VerbFilter;
+use app\models\PedidoDevuelto;
+use yii\web\NotFoundHttpException;
+use app\models\PedidoDevueltoSearch;
+use scotthuangzl\googlechart\GoogleChart;
 
 /**
  * PedidoDevueltoController implements the CRUD actions for PedidoDevuelto model.
@@ -38,13 +40,16 @@ class PedidoDevueltoController extends Controller
      */
     public function actionIndex()
     {
-        $searchModel = new PedidoDevueltoSearch();
-        $dataProvider = $searchModel->search($this->request->queryParams);
-
-        return $this->render('index', [
-            'searchModel' => $searchModel,
-            'dataProvider' => $dataProvider,
-        ]);
+        if(isAdmin()){
+            $searchModel = new PedidoDevueltoSearch();
+            $dataProvider = $searchModel->search($this->request->queryParams);
+            $dataProvider->setSort([
+                'defaultOrder' => ['id'=>SORT_DESC]]);
+            return $this->render('index', [
+                'searchModel' => $searchModel,
+                'dataProvider' => $dataProvider,
+            ]);
+        }
     }
 
     /**
@@ -55,9 +60,11 @@ class PedidoDevueltoController extends Controller
      */
     public function actionView($id)
     {
-        return $this->render('view', [
-            'model' => $this->findModel($id),
-        ]);
+        if(isAdmin()){
+            return $this->render('view', [
+                'model' => $this->findModel($id),
+            ]);
+        }
     }
 
     /**
@@ -67,19 +74,21 @@ class PedidoDevueltoController extends Controller
      */
     public function actionCreate()
     {
-        $model = new PedidoDevuelto();
+        if(isAdmin()){
+            $model = new PedidoDevuelto();
 
-        if ($this->request->isPost) {
-            if ($model->load($this->request->post()) && $model->save()) {
-                return $this->redirect(['view', 'id' => $model->id]);
+            if ($this->request->isPost) {
+                if ($model->load($this->request->post()) && $model->save()) {
+                    return $this->redirect(['view', 'id' => $model->id]);
+                }
+            } else {
+                $model->loadDefaultValues();
             }
-        } else {
-            $model->loadDefaultValues();
-        }
 
-        return $this->render('create', [
-            'model' => $model,
-        ]);
+            return $this->render('create', [
+                'model' => $model,
+            ]);
+        }
     }
 
     /**
@@ -91,15 +100,17 @@ class PedidoDevueltoController extends Controller
      */
     public function actionUpdate($id)
     {
-        $model = $this->findModel($id);
+        if(isAdmin()){
+            $model = $this->findModel($id);
 
-        if ($this->request->isPost && $model->load($this->request->post()) && $model->save()) {
-            return $this->redirect(['view', 'id' => $model->id]);
+            if ($this->request->isPost && $model->load($this->request->post()) && $model->save()) {
+                return $this->redirect(['view', 'id' => $model->id]);
+            }
+
+            return $this->render('update', [
+                'model' => $model,
+            ]);
         }
-
-        return $this->render('update', [
-            'model' => $model,
-        ]);
     }
 
     /**
@@ -111,9 +122,114 @@ class PedidoDevueltoController extends Controller
      */
     public function actionDelete($id)
     {
-        $this->findModel($id)->delete();
+        if(isAdmin()){
+            $this->findModel($id)->delete();
 
-        return $this->redirect(['index']);
+            return $this->redirect(['index']);
+        }
+    }
+
+    public function actionChart(){
+        $dataSale[]= [Yii::t('app', 'Pedido Devuelto'),Yii::t('app', 'Cliente')];
+
+        $modelArray =   PedidoDevuelto::find()->orderBy('fecha_peticion DESC')->limit(10)->all(); 
+
+
+        foreach ($modelArray as $value) {
+
+            $dataSale[] = [$value['fecha_peticion'],(int)$value['cliente_id']];
+
+        }   
+
+        $chartGoogleSale =  GoogleChart::widget(
+
+            array('visualization' => 'ColumnChart',
+
+                'data' => $dataSale,
+
+                'options' => array(
+
+                'title' => '',
+
+                'hAxis'=>[
+
+                'title'=> Yii::t('app', 'Pedidos Devueltos')
+
+            ],
+
+            'legend'=> ['position'=>'top','alignment'=>'center'],
+
+            'vAxis'=>[
+
+            'title'=> Yii::t('app', 'Pedidos Devueltos')
+
+            ],
+
+            'width'=>'100%',
+
+            'height'=>500,
+
+            'backgroundColor'=>[ 'fill'=>'transparent' ]
+
+         
+
+        ))); 
+
+        $data[]= [Yii::t('app', 'Pedido Devuelto'),Yii::t('app', 'Cliente')];
+
+        $modelArray =  Yii::$app->db->createCommand('
+
+        SELECT u.nombre as nombre, count(cliente_id) as count
+
+        FROM pedido_devuelto pd
+
+        LEFT JOIN cliente u ON pd.cliente_id=u.id')
+
+        ->queryAll();  
+
+        foreach ($modelArray as $value) {
+
+            $data[] = [$value['nombre'],(int)$value['count']];
+
+        }   
+
+        $chartGoogleBook = GoogleChart::widget(
+
+            array('visualization' => 'PieChart',
+
+            'data' => $data,
+
+            'options' => array(
+
+            'title' => Yii::t('app', 'Peiddios'),
+
+            'legend'=> ['position'=>'left','alignment'=>'center'],
+
+            'width'=>'100%',
+
+            'height'=>500,
+
+            'backgroundColor'=>[ 'fill'=>'transparent' ],
+
+            'colors'=> ['#e0440e', '#e6693e', '#ec8f6e', '#f3b49f', '#f6c7b6'],
+
+            'is3D'=> true
+
+        )));  
+
+
+        return $this->render('chart',[
+
+                //'chartBook'=>$chartBook,
+
+                //'chartSale'=>$chartSale,
+
+                'chartGoogleBook'=>$chartGoogleBook,
+
+                'chartGoogleSale'=>$chartGoogleSale,
+
+        ]);
+
     }
 
     /**
