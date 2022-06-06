@@ -130,14 +130,19 @@ class PedidoDevueltoController extends Controller
     }
 
     public function actionChart(){
-        $dataSale[]= [Yii::t('app', 'Pedido Devuelto'),Yii::t('app', 'Cliente')];
+        $dataSale[]= [Yii::t('app', 'Pedido Devuelto'),Yii::t('app', 'Cantidad')];
 
-        $modelArray =   PedidoDevuelto::find()->orderBy('fecha_peticion DESC')->limit(10)->all(); 
+        $modelArray =  Yii::$app->db->createCommand("
 
+        SELECT DATE_FORMAT(fecha_devuelto, '%M', 'es_ES') as Month, count(*) as cantidad from pedido_devuelto
+        where fecha_devuelto is not null
+        group by month;")
+
+        ->queryAll();
 
         foreach ($modelArray as $value) {
 
-            $dataSale[] = [$value['fecha_peticion'],(int)$value['cliente_id']];
+            $dataSale[] = [$value['Month'],(int)$value['cantidad']];
 
         }   
 
@@ -148,22 +153,24 @@ class PedidoDevueltoController extends Controller
                 'data' => $dataSale,
 
                 'options' => array(
-
+                    
                 'title' => '',
 
                 'hAxis'=>[
 
-                'title'=> Yii::t('app', 'Pedidos Devueltos')
+                'title'=> Yii::t('app', 'Meses')
 
-            ],
+                ],
 
-            'legend'=> ['position'=>'top','alignment'=>'center'],
+                'legend'=> ['position'=>'top','alignment'=>'center'],
 
-            'vAxis'=>[
+                'vAxis'=>[
 
-            'title'=> Yii::t('app', 'Pedidos Devueltos')
-
-            ],
+                'title'=> Yii::t('app', 'Pedidos Devueltos'),
+                'minValue'=> 0,
+                'maxValue'=> 20,
+                
+                ],
 
             'width'=>'100%',
 
@@ -183,7 +190,9 @@ class PedidoDevueltoController extends Controller
 
         FROM pedido_devuelto pd
 
-        LEFT JOIN cliente u ON pd.cliente_id=u.id')
+        LEFT JOIN cliente u ON pd.cliente_id=u.id
+
+        group by u.nombre')
 
         ->queryAll();  
 
@@ -201,7 +210,7 @@ class PedidoDevueltoController extends Controller
 
             'options' => array(
 
-            'title' => Yii::t('app', 'Peiddios'),
+            'title' => Yii::t('app', 'Peticiones de Devolución por cliente'),
 
             'legend'=> ['position'=>'left','alignment'=>'center'],
 

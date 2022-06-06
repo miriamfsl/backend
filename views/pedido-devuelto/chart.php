@@ -2,11 +2,6 @@
 
 use yii\helpers\Url;
 
-
-
-
-
-
 ?>
 <a href=<?=Url::toRoute(['index'])?>><button type="button" class="btn btn-info">Pedidos Devueltos</button></a>
 <div class="row">
